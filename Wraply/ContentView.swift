@@ -115,9 +115,8 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showShareSheet) {
-            if let url = webView.url {
-                ShareLink(item: url)
-            }
+            let shareURL = webView.url ?? URL(string: urlString)!
+            ActivityView(activityItems: [shareURL])
         }
         .sheet(isPresented: $showBookmarks) {
             BookmarksView { urlString in
@@ -154,4 +153,14 @@ struct ContentView: View {
             }
         }
     }
+}
+
+struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
