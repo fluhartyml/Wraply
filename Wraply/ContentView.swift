@@ -32,6 +32,27 @@ struct ContentView: View {
 
     private var browserView: some View {
         VStack(spacing: 0) {
+            // URL Bar
+            HStack {
+                TextField("Enter URL", text: $urlString)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    .onSubmit {
+                        loadURL()
+                    }
+                    .font(.system(size: 18))
+
+                Button("Go") {
+                    loadURL()
+                }
+                .font(.system(size: 18))
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+
             // Toolbar
             HStack {
                 Button(action: { webView.goBack() }) {
@@ -66,30 +87,13 @@ struct ContentView: View {
 
                 Spacer()
 
-                // URL Bar
-                TextField("Enter URL", text: $urlString)
-                    .textFieldStyle(.roundedBorder)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    .onSubmit {
-                        loadURL()
-                    }
-                    .font(.system(size: 18))
-
-                Button("Go") {
-                    loadURL()
-                }
-                .font(.system(size: 18))
-                .buttonStyle(.borderedProminent)
-
                 Button(action: { showAbout = true }) {
                     Image(systemName: "info.circle")
                         .font(.system(size: 20))
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.bottom, 8)
 
             Divider()
 
