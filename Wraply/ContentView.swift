@@ -7,60 +7,147 @@
 
 import SwiftUI
 import SwiftData
+import WebKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @State private var urlString: String = "https://fluhartyml.github.io/projects/swift-bible.html"
+    @State private var webView = WKWebView()
+    @State private var showShareSheet = false
+    @State private var showBookmarks = false
+    @State private var showAbout = false
+    @State private var showBookmarkSaved = false
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        TabView {
+            Tab("Browser", systemImage: "globe") {
+                browserView
+            }
+            Tab("Under the Hood", systemImage: "wrench.and.screwdriver") {
+                UnderTheHoodView()
+            }
+        }
+        .font(.system(size: 18))
+    }
+
+    private var browserView: some View {
+        VStack(spacing: 0) {
+            // Toolbar
+            HStack {
+                Button(action: { webView.goBack() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20))
+                }
+
+                Button(action: { webView.goForward() }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 20))
+                }
+
+                Button(action: { webView.reload() }) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 20))
+                }
+
+                Button(action: { showShareSheet = true }) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 20))
+                }
+
+                Button(action: { saveBookmark() }) {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 20))
+                }
+
+                Button(action: { showBookmarks = true }) {
+                    Image(systemName: "book")
+                        .font(.system(size: 20))
+                }
+
+                Spacer()
+
+                // URL Bar
+                TextField("Enter URL", text: $urlString)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    .onSubmit {
+                        loadURL()
                     }
+                    .font(.system(size: 18))
+
+                Button("Go") {
+                    loadURL()
                 }
-                .onDelete(perform: deleteItems)
-            }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+                .font(.system(size: 18))
+                .buttonStyle(.borderedProminent)
+
+                Button(action: { showAbout = true }) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 20))
                 }
             }
-        } detail: {
-            Text("Select an item")
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            // Web View
+            WebViewRepresentable(webView: webView)
+        }
+        .onAppear {
+            loadURL()
+        }
+        .overlay(alignment: .top) {
+            if showBookmarkSaved {
+                Text("Bookmark Saved")
+                    .font(.system(size: 16, weight: .medium))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 8)
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = webView.url {
+                ShareLink(item: url)
+            }
+        }
+        .sheet(isPresented: $showBookmarks) {
+            BookmarksView { urlString in
+                self.urlString = urlString
+                loadURL()
+            }
+        }
+        .sheet(isPresented: $showAbout) {
+            AboutView()
         }
     }
 
-    private func addItem() {
+    private func loadURL() {
+        var address = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !address.hasPrefix("http://") && !address.hasPrefix("https://") {
+            address = "https://" + address
+        }
+        if let url = URL(string: address) {
+            webView.load(URLRequest(url: url))
+        }
+    }
+
+    private func saveBookmark() {
+        let title = webView.title ?? urlString
+        let url = webView.url?.absoluteString ?? urlString
+        let bookmark = Bookmark(title: title, urlString: url)
+        modelContext.insert(bookmark)
         withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+            showBookmarkSaved = true
         }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation {
+                showBookmarkSaved = false
             }
         }
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
