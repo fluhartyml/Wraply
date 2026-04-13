@@ -11,7 +11,7 @@ import WebKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var urlString: String = "https://fluhartyml.github.io/projects/swift-bible.html"
+    @State private var urlString: String = "https://fluharty.me/projects/swift-bible.html"
     @State private var webView = WKWebView()
     @State private var showShareSheet = false
     @State private var showBookmarks = false
